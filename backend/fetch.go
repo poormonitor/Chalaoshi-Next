@@ -15,7 +15,7 @@ func getSystemProxyClient() http.Client {
 	if systemProxy != nil && systemProxy.String() != "" {
 		proxyTransport.Proxy = http.ProxyURL(systemProxy.URL())
 	}
-	client := http.Client{Timeout: 3 * time.Second, Transport: proxyTransport}
+	client := http.Client{Transport: proxyTransport}
 	return client
 }
 
@@ -42,7 +42,7 @@ func downloadFromSource(zipURL string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotModified {
 		return "", fmt.Errorf("failed to download zip file: received status code %d", resp.StatusCode)
 	}
 

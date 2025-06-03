@@ -1,6 +1,6 @@
 name: Wails build
 
-on: [push]
+on: [ push ]
 
 env:
   # Necessary for most environments as build failure can occur due to OOM issues
@@ -9,16 +9,30 @@ env:
 jobs:
   build:
     strategy:
-    # Failure in one platform build won't impact the others
+      # Failure in one platform build won't impact the others
       fail-fast: false
       matrix:
         build:
-          - platform:  'linux/amd64'
+          - platform: 'linux/amd64'
             os: 'ubuntu-latest'
-          - platform:  'windows/amd64'
+            hint: 'linux-amd64'
+            ext: ''
+          - platform: 'linux/arm64'
+            os: 'ubuntu-24.04-arm'
+            hint: 'linux-arm64'
+            ext: ''
+          - platform: 'windows/amd64'
             os: 'windows-latest'
-          - platform:  'darwin/universal'
+            hint: 'windows-amd64'
+            ext: '.exe'
+          - platform: 'windows/arm64'
+            os: 'windows-11-arm'
+            hint: 'windows-arm64'
+            ext: '.exe'
+          - platform: 'darwin/universal'
             os: 'macos-latest'
+            hint: 'darwin-universal'
+            ext: '.app.zip'
 
     runs-on: ${{ matrix.build.os }}
     steps:
@@ -33,4 +47,27 @@ jobs:
         with:
           build-name: "chalaoshi"
           build-platform: ${{ matrix.build.platform }}
-          package: true
+          package: false
+
+      # rename the output file to match the platform
+      - name: Rename output file
+        run: |
+          if [ -f "build/bin/${{ steps.build.outputs.build_name }}${{ matrix.build.ext }}" ]; then
+              mv "build/bin/${{ steps.build.outputs.build_name }}${{ matrix.build.ext }}" "build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}"
+          fi
+
+      # upload to the tag release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wails Build ${{runner.os}} ${{inputs.build-name}}
+          path: |
+            build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: inputs.package == 'true' && startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}
+
+
