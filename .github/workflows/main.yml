@@ -52,22 +52,20 @@ jobs:
       # rename the output file to match the platform
       - name: Rename output file
         run: |
-          if [ -f "build/bin/${{ steps.build.outputs.build_name }}${{ matrix.build.ext }}" ]; then
-              mv "build/bin/${{ steps.build.outputs.build_name }}${{ matrix.build.ext }}" "build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}"
-          fi
+          mv "build/bin/chalaoshi${{ matrix.build.ext }}" "build/chalaoshi-client-${{ matrix.build.hint }}${{ matrix.build.ext }}"
 
       # upload to the tag release
       - uses: actions/upload-artifact@v4
         with:
           name: Wails Build ${{runner.os}} ${{inputs.build-name}}
           path: |
-            build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}
+            build/chalaoshi-client-${{ matrix.build.hint }}${{ matrix.build.ext }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: inputs.package == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            build/${{ steps.build.outputs.build_name }}-${{ matrix.build.hint }}${{ matrix.build.ext }}
+            build/chalaoshi-client-${{ matrix.build.hint }}${{ matrix.build.ext }}
 
 
