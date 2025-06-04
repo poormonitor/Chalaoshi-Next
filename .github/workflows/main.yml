@@ -81,7 +81,7 @@ jobs:
       # upload to the tag release
       - uses: actions/upload-artifact@v4
         with:
-          name: chalaoshi ${{ matrix.build.platform }} ${{ github.ref_name }}
+          name: chalaoshi ${{ matrix.build.hint }} ${{ github.ref_name }}
           path: |
             build/chalaoshi-client-${{ matrix.build.hint }}${{ matrix.build.ext }}
             build/chalaoshi-server-${{ matrix.build.hint }}${{ matrix.build.binary_ext }}
