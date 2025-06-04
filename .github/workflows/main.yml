@@ -57,6 +57,12 @@ jobs:
           build-platform: ${{ matrix.build.platform }}
           package: false
 
+      - name: Build server
+        run: |
+          cd server
+          go build -o ../build/chalaoshi-server-${{ matrix.build.hint }}
+          cd ..
+
       # rename the output file to match the platform
       - name: Rename output file
         run: |
@@ -68,6 +74,7 @@ jobs:
           name: Wails Build chalaoshi-client-${{ matrix.build.hint }}
           path: |
             build/chalaoshi-client-${{ matrix.build.hint }}
+            build/chalaoshi-server-${{ matrix.build.hint }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -75,5 +82,4 @@ jobs:
         with:
           files: |
             build/chalaoshi-client-${{ matrix.build.hint }}
-
-
+            build/chalaoshi-server-${{ matrix.build.hint }}
