@@ -24,7 +24,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	filePath = ""
-	backend.Init()
+	go backend.Init()
 }
 
 func (a *App) GetFileBase64() string {

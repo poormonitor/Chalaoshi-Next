@@ -2,6 +2,7 @@ package backend
 
 import (
 	"encoding/base64"
+	"time"
 )
 
 var (
@@ -19,6 +20,10 @@ func Init() {
 	if len(addrLocal) > 0 {
 		go announcePeer(addrLocal)
 		runServer(addrLocal[0].Port)
+	}
+
+	for {
+		time.Sleep(1 * time.Second)
 	}
 }
 

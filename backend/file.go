@@ -31,7 +31,6 @@ func fileService() {
 			time.Sleep(10 * time.Minute) // 每10分钟检查一次
 		}
 	}
-
 }
 
 func fetchFileFromSource(url string) error {

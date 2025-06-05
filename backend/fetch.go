@@ -21,6 +21,7 @@ func getSystemProxyClient() http.Client {
 
 func testIfConnected() bool {
 	client := getSystemProxyClient()
+	client.Timeout = 3 * time.Second // 设置超时时间为5秒
 	resp, err := client.Get("https://chalaoshi.click")
 
 	if err == nil && resp.StatusCode == http.StatusOK {

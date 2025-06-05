@@ -9,19 +9,36 @@ import (
 	"strings"
 )
 
-const chunkSize = 1024 * 1024
+var chunkSize = 1024 * 1024 // 1 MB
 
 func runServer(port uint16) {
 	c := context.Background()
-	udpConn, _ := net.ListenUDP("udp", &net.UDPAddr{Port: int(port)})
-	// ... error handling
+
+	udpConn, err := net.ListenUDP("udp", &net.UDPAddr{Port: int(port)})
+	if err != nil {
+		fmt.Println("Failed to listen on UDP port:", err)
+		return
+	}
+
 	tr := quic.Transport{Conn: udpConn}
-	tlsConf, _ := certSetup()
+	tlsConf, err := certSetup()
+	if err != nil {
+		fmt.Println("Failed to set up TLS configuration:", err)
+		return
+	}
+
 	quicConf := quic.Config{}
-	ln, _ := tr.Listen(tlsConf, &quicConf)
+	ln, err := tr.Listen(tlsConf, &quicConf)
+	if err != nil {
+		fmt.Println("Failed to start QUIC listener:", err)
+		return
+	}
+
 	for {
-		conn, _ := ln.Accept(c)
-		go handleConn(conn)
+		conn, err := ln.Accept(c)
+		if err == nil {
+			go handleConn(conn)
+		}
 	}
 }
 
@@ -109,8 +126,8 @@ func handleRequest(request string, conn quic.Connection) string {
 		fmt.Println("Failed to write to stream:", err)
 		return ""
 	}
-
 	stream.Close()
+
 	stream, err = conn.AcceptStream(context.Background())
 	if err != nil {
 		fmt.Println("Failed to accept stream:", err)
@@ -133,12 +150,17 @@ func handleRequest(request string, conn quic.Connection) string {
 
 func downloadFileFromPeer() error {
 	var peer *Addr
-	for peer == nil {
-		status = 3
-		peers := getPeer()
-		fmt.Println("Found peers:", peers)
-		status = 4
-		peer = tryPeer(peers, false)
+
+	status = 3
+	peers := getPeer()
+	fmt.Println("Found peers:", peers)
+
+	status = 4
+	peer = tryPeer(peers, false)
+
+	if peer == nil {
+		fmt.Println("No suitable peer found")
+		return fmt.Errorf("no suitable peer found")
 	}
 
 	status = 5
@@ -156,24 +178,25 @@ func downloadFileFromPeer() error {
 	if err != nil {
 		return fmt.Errorf("failed to open stream: %w", err)
 	}
-	n, err := stream.Write([]byte("dow"))
+
+	_, err = stream.Write([]byte("dow"))
 	if err != nil {
 		return fmt.Errorf("failed to write to stream: %w", err)
 	}
 	stream.Close()
-
 	stream, err = conn.AcceptStream(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to accept stream: %w", err)
 	}
-	var fileData []byte
-	buf := make([]byte, chunkSize)
+
+	fileData := make([]byte, 0, chunkSize*100)
+	buf := make([]byte, chunkSize*2)
 	for {
 		n, err := stream.Read(buf)
 		if n > 0 {
 			fileData = append(fileData, buf[:n]...)
 		}
-		if err != nil {
+		if n == 0 && err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
@@ -181,12 +204,11 @@ func downloadFileFromPeer() error {
 		}
 	}
 
-	response := buf[:n]
 	zipFile, err := createZipFile()
 	if err != nil {
 		return fmt.Errorf("failed to create zip file: %w", err)
 	}
-	if _, err = zipFile.Write(response); err != nil {
+	if _, err = zipFile.Write(fileData); err != nil {
 		return fmt.Errorf("failed to write downloaded content to zip file: %w", err)
 	}
 	if err = zipFile.Close(); err != nil {
