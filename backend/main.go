@@ -19,7 +19,7 @@ func Init() {
 	addrLocal := getAddrLocal()
 	if len(addrLocal) > 0 {
 		go announcePeer(addrLocal)
-		runServer(addrLocal[0].Port)
+		go runServer(addrLocal[0].Port)
 	}
 
 	for {

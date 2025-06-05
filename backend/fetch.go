@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os" // 用于创建临时目录和文件
+	"path/filepath"
 	"time"
 )
 
@@ -66,29 +67,48 @@ func downloadFromSource(zipURL string) (string, error) {
 	return zipFile.Name(), nil
 }
 
+func GetTempDir() (string, error) {
+	tempDir := os.TempDir()
+	tempDirPath := filepath.Join(tempDir, "chalaoshi")
+
+	absPath, err := filepath.Abs(tempDirPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path for %s: %w", tempDirPath, err)
+	}
+
+	if _, err := os.Stat(tempDirPath); err == nil {
+		return absPath, nil
+	}
+
+	err = os.MkdirAll(tempDirPath, 0755)
+	if err != nil {
+		return "", fmt.Errorf("failed to create directory %s: %w", tempDirPath, err)
+	}
+
+	return absPath, nil
+}
+
 func createZipFile() (*os.File, error) {
-	// remove the old zip file if it exists
-	if _, err := os.Stat("./files"); os.IsNotExist(err) {
-		// 如果目录不存在，创建它
-		if err := os.MkdirAll("./files", 0755); err != nil {
-			return nil, fmt.Errorf("failed to create 'files' directory: %w", err)
-		}
+	filePath, err := GetTempDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get temporary directory: %w", err)
 	}
 	// 如果目录存在，删除里面的文件
-	dirEntries, err := os.ReadDir("./files")
+	dirEntries, err := os.ReadDir(filePath)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to read 'files' directory: %w", err)
 	}
 	for _, entry := range dirEntries {
-		err := os.RemoveAll(fmt.Sprintf("./files/%s", entry.Name()))
+		err := os.RemoveAll(filepath.Join(filePath, entry.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to remove file or directory '%s': %w", entry.Name(), err)
 		}
 	}
 
 	// 1. 创建文件来存储下载的 zip 内容
-	fileName := fmt.Sprintf("./files/chalaoshi-%s.zip", time.Now().Format("20060102"))
-	zipFile, err := os.Create(fileName)
+	fileName := fmt.Sprintf("chalaoshi-%s.zip", time.Now().Format("20060102"))
+	fullFilePath := filepath.Join(filePath, fileName)
+	zipFile, err := os.Create(fullFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporary zip file: %w", err)
 	}
